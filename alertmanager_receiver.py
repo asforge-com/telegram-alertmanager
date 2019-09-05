@@ -18,10 +18,22 @@ def alert():
     headers = request.headers
 
     body = request.data.decode('utf8')
-    body = json.loads(body)['alerts'][0]['annotations']['description']
     body = urllib.parse.quote(body)
+    total_alerts = ""
+    priority= ""
+    notification = "false"
+    
+    for P in ["P1","P2","P3","P4","P5"]:
+        for alert in body["alerts"]:
+            if alert['labels']['severity'] == P:
+                alert_description = alert['annotations']['description']
+                total_alerts += '\n\n' + urllib.parse.quote(alert_description)
+                if priority == "":
+                    priority = P
+    if priority in ["P4","P5"]:
+        notification = "true"
 
-    requests.get('https://api.telegram.org/bot'+TELEGRAM_TOKEN+'/sendMessage?chat_id='+TELEGRAM_CHAT_ID+'&text='+body+'&disable_notification=true')
+    requests.get('https://api.telegram.org/bot'+TELEGRAM_TOKEN+'/sendMessage?chat_id='+TELEGRAM_CHAT_ID+'&text='+total_alerts+'&disable_notification=(notification)')
     return("")
 
 if __name__ == '__main__':
