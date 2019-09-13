@@ -4,6 +4,7 @@ from flask import request
 import requests
 import urllib.parse
 import json
+import sys
 import os
 
 
@@ -18,12 +19,26 @@ def alert():
     headers = request.headers
 
     body = request.data.decode('utf8')
-    body = json.loads(body)['alerts'][0]['annotations']['description']
-    body = urllib.parse.quote(body)
+    body = json.loads(body)
+    message_to_send = ""
+    priority = None
+    no_notification = "false"
+    
+    for P in ["P1","P2","P3","P4","P5"]:
+        for alert in body['alerts']:
+            if alert['labels']['severity'] == P:
+                alert_description = alert['annotations']['description']
+                message_to_send += '\n\n' + urllib.parse.quote(alert_description)
+                if priority is None:
+                    priority = P
+                    
+    if priority in ["P4","P5"]:
+        no_notification = "true"
 
-    requests.get('https://api.telegram.org/bot'+TELEGRAM_TOKEN+'/sendMessage?chat_id='+TELEGRAM_CHAT_ID+'&text='+body+'&disable_notification=true')
+    r = requests.get('https://api.telegram.org/bot%s/sendMessage?chat_id=%s&text=%s&disable_notification=%s' % (TELEGRAM_TOKEN,TELEGRAM_CHAT_ID,message_to_send,no_notification))
+    if r.status_code != 200:
+        print("An error occured on telegram API. Status code %s, response %s" % (r.status_code,r.content),file=sys.stderr)
     return("")
-
 if __name__ == '__main__':
 
     errors = []
